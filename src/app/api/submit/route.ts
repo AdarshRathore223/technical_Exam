@@ -6,11 +6,12 @@ export const config = {
     bodyParser: false,
   },
 };
+
 export async function POST(req: Request) {
   try {
-    // Parse the request body
     const body = await req.json();
     const {
+      uid,
       fundSource,
       fund_date,
       category,
@@ -24,18 +25,16 @@ export async function POST(req: Request) {
       reimbursementDate,
       comment,
       link,
-      
+      original_name,
     } = body;
 
-    // Log the parsed data to verify
     console.log("Received form data:", body);
 
-    // Create a MySQL connection
-    const db = await createConnection();  // Wait for the connection
+    const db = await createConnection();
 
-    // SQL query to insert data
     const query = `
       INSERT INTO user (
+        uid,
         Fund_source,
         fund_date,
         category,
@@ -48,18 +47,15 @@ export async function POST(req: Request) {
         Reimverse_from,
         Reimburse_date,
         comment,
-        link
+        link,
+        original_name
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    // Ensure the file is being handled properly, check if "scan" exists
-    let file = null;
-
-
-    // Log the query and values to verify before execution
     console.log("Executing query:", query);
     console.log("Query parameters:", [
+      uid,
       fundSource,
       fund_date,
       category,
@@ -73,10 +69,11 @@ export async function POST(req: Request) {
       reimbursementDate,
       comment,
       link,
+      original_name,
     ]);
 
-    // Execute the query using async/await for better handling
     const [result] = await db.execute(query, [
+      uid,
       fundSource,
       fund_date,
       category,
@@ -89,11 +86,14 @@ export async function POST(req: Request) {
       reimbursement,
       reimbursementDate,
       comment,
-      link  // Ensure the file is correctly stored or handled
+      link,
+      original_name,
     ]);
 
-    // Send success response
-    return new Response(JSON.stringify({ message: "Form submitted successfully" }), { status: 200 });
+    return new Response(
+      JSON.stringify({ message: "Form submitted successfully" }),
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error Details: ", error);
     return new Response(

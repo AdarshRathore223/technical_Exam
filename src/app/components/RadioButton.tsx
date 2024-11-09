@@ -1,6 +1,6 @@
 import React from "react";
 
-interface Radiobutton {
+interface RadioButtonProps {
   label: string;
   name: string;
   options: { value: string; label: string }[];
@@ -8,7 +8,7 @@ interface Radiobutton {
   onChange: (value: string) => void;
 }
 
-const RadioButton: React.FC<Radiobutton> = ({
+const RadioButton: React.FC<RadioButtonProps> = ({
   label,
   name,
   options,
@@ -27,7 +27,8 @@ const RadioButton: React.FC<Radiobutton> = ({
               value={option.value}
               checked={selectedValue === option.value}
               onChange={() => onChange(option.value)}
-              className="text-blue-600 border-gray-300 focus:ring-blue-500 m-3 "
+              className="text-blue-600 border-gray-300 focus:ring-blue-500 m-3"
+              aria-checked={selectedValue === option.value} // Improved accessibility
             />
             <span className="text-sm text-gray-700">{option.label}</span>
           </label>

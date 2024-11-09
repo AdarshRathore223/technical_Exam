@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 
-// Define prop types for the Input component
 interface InputProps {
   label: string;
   name: string;
   required?: boolean;
-  type: "text" | "date" | "number" | "textarea"; // Add other types as needed
+  type: "text" | "date" | "number" | "textarea"; 
   className?: string;
   placeholder?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; // Updated onChange for different input types
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  charLimit?: number; 
 }
 
 const Input: React.FC<InputProps> = ({
@@ -19,9 +19,36 @@ const Input: React.FC<InputProps> = ({
   className,
   placeholder,
   onChange,
+  charLimit,
 }) => {
-  // Get today's date in YYYY-MM-DD format for the max date
   const today = new Date().toISOString().split("T")[0];
+  const [value, setValue] = useState("");
+
+  // Handle input changes and enforce character limit
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    let inputValue = e.target.value;
+
+    if (type === "number") {
+      const numericValue = inputValue.replace(/\./g, "");
+      if (charLimit && numericValue.length > charLimit) return;
+
+      if ((inputValue.match(/\./g) || []).length > 1) return;
+    } else {
+      if (charLimit && inputValue.length > charLimit) return;
+    }
+
+    setValue(inputValue);
+    if (onChange) onChange(e);
+  };
+
+  const inputProps = {
+    id: name,
+    name,
+    placeholder,
+    onChange: handleChange,
+    className: "w-full p-2 border border-gray-300 rounded-md",
+    value,
+  };
 
   return (
     <div className={`input-container ${className}`}>
@@ -30,25 +57,24 @@ const Input: React.FC<InputProps> = ({
       </label>
       {type === "textarea" ? (
         <textarea
-          id={name}
-          name={name}
-          required={required}
-          placeholder={placeholder}
-          onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>} // Casting for textareas
+          {...inputProps}
           className="w-full p-2 border border-gray-300 rounded-md"
+          maxLength={charLimit} 
         />
       ) : (
         <input
+          {...inputProps}
           type={type}
-          id={name}
-          name={name}
-          required={required}
-          placeholder={placeholder}
-          onChange={onChange as React.ChangeEventHandler<HTMLInputElement>} // Casting for other inputs
-          className="w-full p-2 border border-gray-300 rounded-md"
-          // If the type is 'date', set the max date to today
           {...(type === "date" && { max: today })}
+          maxLength={type === "text" && charLimit ? charLimit : undefined} 
         />
+      )}
+      {charLimit && (
+        <p className="text-xs text-gray-500 mt-1">
+          {type === "number"
+            ? `${value.replace(/\./g, "").length}/${charLimit} characters`
+            : `${value.length}/${charLimit} characters`}
+        </p>
       )}
     </div>
   );

@@ -1,29 +1,29 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
+import Done from "./Done";
 
-type DocumentFormat = 
-  | "PDF" 
-  | "DOCX" 
-  | "TXT" 
+type DocumentFormat =
+  | "PDF"
+  | "DOCX"
+  | "TXT"
   | "Other"
-  | "PNG" 
-  | "JPEG" 
-  | "JPG" 
-  | "GIF" 
-  | "BMP" 
-  | "SVG" 
-  | "WEBP" 
-  | "TIFF" 
+  | "PNG"
+  | "JPEG"
+  | "JPG"
+  | "GIF"
+  | "BMP"
+  | "SVG"
+  | "WEBP"
+  | "TIFF"
   | "ICO"
   | "HEIC";
 
-
-type FileUploadProps = {
-  onFileUpload: (fileUrl: string) => void;
+type HandleChangeProps = {
+  handleChange: (data: { url: string; original_name: string }) => void;
 };
 
-export default function DocumentUploader({ onFileUpload }: FileUploadProps) {
+export default function DocumentUploader({ handleChange }: HandleChangeProps) {
   const [uploadedDocument, setUploadedDocument] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -32,8 +32,8 @@ export default function DocumentUploader({ onFileUpload }: FileUploadProps) {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setIsUploading(true);
 
+    setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -43,20 +43,18 @@ export default function DocumentUploader({ onFileUpload }: FileUploadProps) {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to response upload document");
+      if (!response.ok) throw new Error("Failed to upload document");
 
       const data = await response.json();
-      setUploadedDocument(data.publicId);
-      if (!data.publicId) {
+      if (!data.publicId)
         throw new Error("Uploaded document error: publicId not found");
-      }
 
-      setUploadedDocument(data.publicId); 
+      setUploadedDocument(data.publicId);
 
-      console.log(data)
-      onFileUpload(data.url);
+      // Pass both URL and original file name as an object to `handleChange`
+      handleChange({ url: data.url, original_name: file.name });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       alert("Failed to upload document");
     } finally {
       setIsUploading(false);
@@ -67,26 +65,20 @@ export default function DocumentUploader({ onFileUpload }: FileUploadProps) {
     <div className="container mx-auto max-w-4xl">
       <div className="card">
         <div className="card-body">
-          <div className="form-control">
+          <div className="form-control flex w-2/3">
             <input
               type="file"
               accept=".pdf,.docx,.txt,.png,.jpeg,.jpg,.gif,.bmp,.svg,.webp,.tiff,.ico,.heic"
               onChange={handleFileUpload}
               className="file-input file-input-bordered file-input-primary w-full"
             />
+            {isUploading && (
+              <div className="flex justify-center items-center">
+                <div className="w-5 h-5 border-y-2 border-solid rounded-full border-b-green-600 animate-spin" />
+              </div>
+            )}
+            {uploadedDocument && <Done />}
           </div>
-
-          {isUploading && (
-            <div>
-              <progress className="progress progress-primary w-full"></progress>
-            </div>
-          )}
-
-          {uploadedDocument && (
-            <div>
-              <h2 className="card-title">Document Uploaded</h2>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ interface DropdownInputProps {
   placeholder: string;
   options: string[];
   onChange: (value: string) => void;
-  charLimit?: number; // Added charLimit prop to restrict characters
+  charLimit?: number;
   className?: string;
 }
 
@@ -28,16 +28,14 @@ const DropdownInput: React.FC<DropdownInputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
 
-    // Check character limit if the charLimit is set
     if (charLimit && value.length > charLimit) {
-      value = value.slice(0, charLimit); // Trim the value to the limit
+      value = value.slice(0, charLimit);
       setError(`Character limit of ${charLimit} exceeded!`);
     } else {
-      setError(null); // Reset error if under the limit
+      setError(null);
     }
 
     setInputValue(value);
-
     setIsDropdownVisible(
       Boolean(
         value &&
@@ -63,7 +61,6 @@ const DropdownInput: React.FC<DropdownInputProps> = ({
       <input
         type="text"
         id={name}
-        required={required}
         name={name}
         className="mt-1 block w-full border border-gray-400 shadow-sm bg-transparent p-2"
         placeholder={placeholder}
@@ -89,11 +86,7 @@ const DropdownInput: React.FC<DropdownInputProps> = ({
         </div>
       )}
 
-      {error && (
-        <div className="text-red-600 text-xs mt-2">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-red-600 text-xs mt-2">{error}</div>}
     </div>
   );
 };

@@ -1,20 +1,11 @@
-"use client";
-import React, { useEffect } from "react";
+import Image from "next/image";
+import bg from "@/app/assets/bg.jpg";
 
-function page() {
-  useEffect(() => {
-    const fetchdata = async () => {
-      try {
-        const data = await fetch("/api/user");
-        const response = await data.json();      
-        console.log(response);
-      } catch (error) {        
-        console.log(error)
-      }
-    };
-    fetchdata();
-  }, []);
-  return <div>page</div>;
+function Page() {
+  return <div className="w-full h-full relative flex justify-center items-center">
+    <h1 className="text-3xl font-extrabold font-serif">Home Page</h1>
+    <Image src={bg} alt="Background" layout="responsive" className="opacity-20 absolute w-full"/>
+  </div>;
 }
 
-export default page;
+export default Page;

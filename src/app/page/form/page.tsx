@@ -1,25 +1,58 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Input from "../../components/Input";
 import DropdownInput from "../../components/DropdownInput";
 import RadioButton from "../../components/RadioButton";
 import FileUpload from "../../components/FileUpload";
 
-const MyForm: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+type FormData = {
+  uid: string;
+  fundSource: string;
+  fund_date: string;
+  category: string;
+  head: string;
+  remark: string;
+  vendor: string;
+  amount: string;
+  reference: string;
+  debtReimbursement: string;
+  reimbursement: string;
+  reimbursementDate: string;
+  comment: string;
+  link: string;
+  original_name: string;
+};
 
+const options = {
+  fundSource: ["Source1", "Source2"],
+  category: ["Category1", "Category2"],
+  head: ["Head1", "Head2"],
+  vendor: ["Vendor1", "Vendor2"],
+  reimbursement: ["Option1", "Option2"],
+};
+
+const fieldNames = {
+  fundSource: "Fund Source",
+  fund_date: "Fund Date",
+  // category: "Category",
+  // head: "Head",
+  // vendor: "Paid To",
+  amount: "Amount",
+  // reference: "Reference",
+  // debtReimbursement: "Debt Reimbursement",
+  // reimbursement: "Reimbursement From",
+  // link: "Document",
+};
+
+const generateUniqueId = (): string =>
+  `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+const page: React.FC = () => {
+  const [loading, setLoading] = useState(false);
   const [responseMessage, setResponseMessage] = useState<string | null>(null);
   const [debtReimbursement, setDebtReimbursement] = useState<string>("");
-
-  const options = {
-    fundSource: ["Source1", "Source2"],
-    category: ["Category1", "Category2"],
-    head: ["Head1", "Head2"],
-    vendor: ["Vendor1", "Vendor2"],
-    reimbursement: ["Option1", "Option2"],
-  };
-
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
+    uid: generateUniqueId(),
     fundSource: "",
     fund_date: "",
     category: "",
@@ -33,48 +66,62 @@ const MyForm: React.FC = () => {
     reimbursementDate: "",
     comment: "",
     link: "",
+    original_name: "",
   });
 
-  const handleFileUpload = (fileUrl: string) => {
-    console.log(fileUrl)
-    setFormData((prevData) => ({
-      ...prevData,
-      link: fileUrl, 
-    }));
-  };
+  useEffect(() => {
+    console.log("formData updated:", formData);
+  }, [formData]);
 
   const handleInputChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleDebtReimbursementChange = (value: string) => {
     setDebtReimbursement(value);
-    handleInputChange("debtReimbursement",value)
+    handleInputChange("debtReimbursement", value);
+  };
 
+  const validateFormData = (): string[] => {
+    return Object.keys(fieldNames).filter(
+      (field) => !formData[field as keyof FormData]
+    ).map((field) => fieldNames[field as keyof typeof fieldNames]);
+  };
+
+  const handleDocumentChange = (data: { url: string; original_name: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      link: data.url,
+      original_name: data.original_name,
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
-    console.log(formData)
     event.preventDefault();
     setLoading(true);
     setResponseMessage(null);
 
+    const missingFields = validateFormData();
+    if (missingFields.length > 0) {
+      setResponseMessage(
+        `Error: Missing data for the following fields: ${missingFields.join(", ")}`
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setResponseMessage("Data submitted successfully!");
-      } else {
-        const error = await response.json();
-        setResponseMessage(`Error: ${error.message || "Something went wrong"}`);
-      }
+      const message = response.ok
+        ? "Data submitted successfully!"
+        : `Error: ${(await response.json()).message || "Something went wrong"}`;
+
+      setResponseMessage(message);
     } catch (error) {
       console.error("Error occurred:", error);
       setResponseMessage("Request failed: " + error);
@@ -90,7 +137,7 @@ const MyForm: React.FC = () => {
       </h1>
 
       <form onSubmit={handleSubmit} className="px-6">
-        {/* Form Inputs */}
+        {/* Fund Source and Date */}
         <div className="mb-4 flex gap-5 w-full">
           <DropdownInput
             name="fundSource"
@@ -103,7 +150,7 @@ const MyForm: React.FC = () => {
             onChange={(value) => handleInputChange("fundSource", value)}
           />
           <Input
-            label="Fund Date"
+            label="Expense Date"
             name="fund_date"
             required
             type="date"
@@ -111,7 +158,9 @@ const MyForm: React.FC = () => {
             onChange={(e) => handleInputChange("fund_date", e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-2 grid-rows-2 gap-x-5 gap-y-2">
+
+        {/* Category, Head, Remark */}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-2">
           <DropdownInput
             name="category"
             label="Category"
@@ -123,7 +172,7 @@ const MyForm: React.FC = () => {
           />
           <DropdownInput
             name="head"
-            label="Head"
+            label="Expense Head"
             charLimit={20}
             placeholder="Select Head"
             required
@@ -131,16 +180,17 @@ const MyForm: React.FC = () => {
             onChange={(value) => handleInputChange("head", value)}
           />
           <Input
-            label="Remark"
+            label="Remarks"
             name="remark"
             placeholder="Add Remark"
             className="col-span-2"
             onChange={(e) => handleInputChange("remark", e.target.value)}
-            type={"text"}
+            type="text"
           />
         </div>
 
-        <div className="grid grid-cols-2 grid-rows-2 gap-x-5 gap-y-2 mt-5">
+        {/* Vendor, Amount, Reference */}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-2 mt-5">
           <DropdownInput
             name="vendor"
             label="Paid To"
@@ -154,30 +204,25 @@ const MyForm: React.FC = () => {
             label="Amount"
             name="amount"
             required
+            charLimit={8}
             placeholder="Enter Amount"
             onChange={(e) => handleInputChange("amount", e.target.value)}
-            type={"number"}
+            type="number"
           />
           <Input
-            label="Reference ID"
+            label="Reference#"
             name="reference"
             required
             placeholder="Enter Reference ID"
             onChange={(e) => handleInputChange("reference", e.target.value)}
-            type={"text"}
+            type="text"
           />
         </div>
 
-        {/* Reimbursement Dropdown */}
-        <div
-          className={
-            debtReimbursement === "yes"
-              ? "grid grid-cols-2 grid-rows-2 gap-x-5"
-              : ""
-          }
-        >
+        {/* Reimbursement Options */}
+        <div className={debtReimbursement === "yes" ? "grid grid-cols-2 gap-x-5" : ""}>
           <RadioButton
-            label="Is this expense eligible for debt reimbursement?"
+            label="Is this expense eligible for reimbursement?"
             name="debtReimbursement"
             options={[
               { value: "yes", label: "Yes" },
@@ -192,8 +237,8 @@ const MyForm: React.FC = () => {
               <DropdownInput
                 required
                 name="reimbursement"
-                label="Reimbursement From"
-                placeholder="Reimbursement From"
+                label="Reimburse From"
+                placeholder="Reimburse From"
                 charLimit={20}
                 options={options.reimbursement}
                 onChange={(value) => handleInputChange("reimbursement", value)}
@@ -201,14 +246,13 @@ const MyForm: React.FC = () => {
               <Input
                 label="Reimbursement Date"
                 name="reimbursementDate"
-                required
                 type="date"
                 onChange={(e) =>
                   handleInputChange("reimbursementDate", e.target.value)
                 }
               />
               <Input
-                label="Comment"
+                label="Comments"
                 name="comment"
                 type="textarea"
                 className="col-span-2"
@@ -220,14 +264,12 @@ const MyForm: React.FC = () => {
 
         {/* File Upload */}
         <div className="mb-4">
-          <label
-            htmlFor="scan"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="scan" className="block text-sm font-medium text-gray-700">
             Scan <span className="text-red-600 font-extrabold">*</span>
           </label>
-          <FileUpload onFileUpload={handleFileUpload}/>
+          <FileUpload handleChange={handleDocumentChange} />
         </div>
+
         {/* Submit Button */}
         <button
           type="submit"
@@ -241,7 +283,7 @@ const MyForm: React.FC = () => {
       {/* Response Message */}
       {responseMessage && (
         <div
-          className={`mt-4 text-center text-sm font-semibold py-2 px-4 rounded-md ${
+          className={`mt-4 text-center text-sm font-semibold py-2 m-5 px-4 rounded-md ${
             responseMessage.startsWith("Error")
               ? "text-red-600 bg-red-100"
               : "text-green-600 bg-green-100"
@@ -254,4 +296,4 @@ const MyForm: React.FC = () => {
   );
 };
 
-export default MyForm;
+export default page;

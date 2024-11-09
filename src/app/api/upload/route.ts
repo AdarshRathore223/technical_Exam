@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       console.error("File not found in request.");
-      return NextResponse.json({ error: "File not found" }, { status: 400 });
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -32,9 +32,9 @@ export async function POST(request: NextRequest) {
             console.error("Error in Cloudinary upload:", error);
             reject(error);
           } else {
-            console.log(result?.url)
             resolve(result as CloudinaryUploadResult);
           }
+          console.log(result)
         }
       );
       uploadStream.end(buffer);
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         url: result.secure_url
       },
       {
-        status: 200
+        status: 201
       }
     );
 
