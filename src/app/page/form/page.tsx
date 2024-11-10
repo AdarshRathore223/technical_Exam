@@ -1,26 +1,27 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Input from "../../components/Input";
 import DropdownInput from "../../components/DropdownInput";
 import RadioButton from "../../components/RadioButton";
-import FileUpload from "../../components/FileUpload";
+import Done from "@/app/components/Done";
 
 type FormData = {
-  uid: string;
-  fundSource: string;
-  fund_date: string;
-  category: string;
-  head: string;
-  remark: string;
-  vendor: string;
-  amount: string;
-  reference: string;
-  debtReimbursement: string;
-  reimbursement: string;
-  reimbursementDate: string;
-  comment: string;
-  link: string;
-  original_name: string;
+  uid: string | null;
+  fundSource: string | null;
+  fund_date: string | null;
+  category: string | null;
+  head: string | null;
+  remark: string | null;
+  vendor: string | null;
+  amount: string | null;
+  reference: string | null;
+  debtReimbursement: string | null;
+  reimbursement: string | null;
+  reimbursementDate: string | null;
+  comment: string | null;
+  mime_type: string | null;
+  new_filename: string | null;
+  original_name: string | null;
 };
 
 const options = {
@@ -34,47 +35,45 @@ const options = {
 const fieldNames = {
   fundSource: "Fund Source",
   fund_date: "Fund Date",
-  // category: "Category",
-  // head: "Head",
-  // vendor: "Paid To",
   amount: "Amount",
-  // reference: "Reference",
-  // debtReimbursement: "Debt Reimbursement",
-  // reimbursement: "Reimbursement From",
-  // link: "Document",
 };
 
-const generateUniqueId = (): string =>
-  `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+const generateUniqueId = (): string => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-const page: React.FC = () => {
+const Page: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isUploaded, setIsUploaded] = useState(false);
   const [responseMessage, setResponseMessage] = useState<string | null>(null);
   const [debtReimbursement, setDebtReimbursement] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
   const [formData, setFormData] = useState<FormData>({
     uid: generateUniqueId(),
-    fundSource: "",
-    fund_date: "",
-    category: "",
-    head: "",
-    remark: "",
-    vendor: "",
-    amount: "",
-    reference: "",
-    debtReimbursement: "",
-    reimbursement: "",
-    reimbursementDate: "",
-    comment: "",
-    link: "",
-    original_name: "",
+    fundSource: null,
+    fund_date: null,
+    category: null,
+    head: null,
+    remark: null,
+    vendor: null,
+    amount: null,
+    reference: null,
+    debtReimbursement: null,
+    reimbursement: null,
+    reimbursementDate: null,
+    comment: null,
+    mime_type: null,
+    original_name: null,
+    new_filename: null,
   });
 
   useEffect(() => {
-    console.log("formData updated:", formData);
+    console.log("Form data updated:", formData);
   }, [formData]);
 
   const handleInputChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value || null }));
   };
 
   const handleDebtReimbursementChange = (value: string) => {
@@ -82,18 +81,47 @@ const page: React.FC = () => {
     handleInputChange("debtReimbursement", value);
   };
 
-  const validateFormData = (): string[] => {
-    return Object.keys(fieldNames).filter(
-      (field) => !formData[field as keyof FormData]
-    ).map((field) => fieldNames[field as keyof typeof fieldNames]);
+  const validateFormData = (): string[] =>
+    Object.keys(fieldNames)
+      .filter((field) => !formData[field as keyof FormData])
+      .map((field) => fieldNames[field as keyof typeof fieldNames]);
+
+  const handleFileChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    const file = evt.target.files?.[0];
+    if (file) setUploadedFile(file);
   };
 
-  const handleDocumentChange = (data: { url: string; original_name: string }) => {
-    setFormData((prev) => ({
-      ...prev,
-      link: data.url,
-      original_name: data.original_name,
-    }));
+  const uploadFile = async () => {
+    if (!uploadedFile) return;
+
+    const mimeType = uploadedFile.type;
+    const originalName = uploadedFile.name;
+    const newFilename = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    setFormData({
+      ...formData,
+      mime_type: mimeType,
+      original_name: originalName,
+      new_filename: newFilename,
+    });
+
+    const data = new FormData();
+    data.append("file", uploadedFile, newFilename);
+
+    try {
+      setIsUploading(true);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: data,
+      });
+      const result = await response.json();
+      console.log(result);
+      setIsUploaded(true);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -103,12 +131,12 @@ const page: React.FC = () => {
 
     const missingFields = validateFormData();
     if (missingFields.length > 0) {
-      setResponseMessage(
-        `Error: Missing data for the following fields: ${missingFields.join(", ")}`
-      );
+      setResponseMessage(`Error: Missing data for ${missingFields.join(", ")}`);
       setLoading(false);
       return;
     }
+
+    await uploadFile();
 
     try {
       const response = await fetch("/api/submit", {
@@ -120,7 +148,6 @@ const page: React.FC = () => {
       const message = response.ok
         ? "Data submitted successfully!"
         : `Error: ${(await response.json()).message || "Something went wrong"}`;
-
       setResponseMessage(message);
     } catch (error) {
       console.error("Error occurred:", error);
@@ -132,12 +159,10 @@ const page: React.FC = () => {
 
   return (
     <div className="w-full bg-white max-w-[50rem] pb-5 rounded-lg">
-      <h1 className="text-xl text-white bg-green-400 font-bold p-2 rounded-t-md mb-5">
-        Form
-      </h1>
+      <h1 className="text-xl text-white bg-green-400 font-bold p-2 rounded-t-md mb-5">Form</h1>
 
       <form onSubmit={handleSubmit} className="px-6">
-        {/* Fund Source and Date */}
+        {/* Form Fields */}
         <div className="mb-4 flex gap-5 w-full">
           <DropdownInput
             name="fundSource"
@@ -159,7 +184,6 @@ const page: React.FC = () => {
           />
         </div>
 
-        {/* Category, Head, Remark */}
         <div className="grid grid-cols-2 gap-x-5 gap-y-2">
           <DropdownInput
             name="category"
@@ -189,7 +213,6 @@ const page: React.FC = () => {
           />
         </div>
 
-        {/* Vendor, Amount, Reference */}
         <div className="grid grid-cols-2 gap-x-5 gap-y-2 mt-5">
           <DropdownInput
             name="vendor"
@@ -219,81 +242,82 @@ const page: React.FC = () => {
           />
         </div>
 
-        {/* Reimbursement Options */}
-        <div className={debtReimbursement === "yes" ? "grid grid-cols-2 gap-x-5" : ""}>
-          <RadioButton
-            label="Is this expense eligible for reimbursement?"
-            name="debtReimbursement"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            selectedValue={debtReimbursement}
-            onChange={handleDebtReimbursementChange}
-          />
+        {/* Debt Reimbursement Fields */}
+        <RadioButton
+          label="Is this expense eligible for reimbursement?"
+          name="debtReimbursement"
+          options={[
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No" },
+          ]}
+          selectedValue={debtReimbursement}
+          onChange={handleDebtReimbursementChange}
+        />
 
-          {debtReimbursement === "yes" && (
-            <>
-              <DropdownInput
-                required
-                name="reimbursement"
-                label="Reimburse From"
-                placeholder="Reimburse From"
-                charLimit={20}
-                options={options.reimbursement}
-                onChange={(value) => handleInputChange("reimbursement", value)}
-              />
-              <Input
-                label="Reimbursement Date"
-                name="reimbursementDate"
-                type="date"
-                onChange={(e) =>
-                  handleInputChange("reimbursementDate", e.target.value)
-                }
-              />
-              <Input
-                label="Comments"
-                name="comment"
-                type="textarea"
-                className="col-span-2"
-                onChange={(e) => handleInputChange("comment", e.target.value)}
-              />
-            </>
-          )}
-        </div>
+        {debtReimbursement === "yes" && (
+          <div className="grid grid-cols-2 gap-x-5">
+            <DropdownInput
+              required
+              name="reimbursement"
+              label="Reimburse From"
+              placeholder="Reimburse From"
+              charLimit={20}
+              options={options.reimbursement}
+              onChange={(value) => handleInputChange("reimbursement", value)}
+            />
+            <Input
+              label="Reimbursement Date"
+              name="reimbursementDate"
+              type="date"
+              onChange={(e) => handleInputChange("reimbursementDate", e.target.value)}
+            />
+            <Input
+              label="Comments"
+              name="comment"
+              type="textarea"
+              className="col-span-2"
+              onChange={(e) => handleInputChange("comment", e.target.value)}
+            />
+          </div>
+        )}
 
         {/* File Upload */}
         <div className="mb-4">
           <label htmlFor="scan" className="block text-sm font-medium text-gray-700">
             Scan <span className="text-red-600 font-extrabold">*</span>
           </label>
-          <FileUpload handleChange={handleDocumentChange} />
+          <input
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="mt-1 block w-full"
+            type="file"
+            name="scan"
+            id="scan"
+          />
+          {isUploading && <div>Uploading file...</div>}
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full mt-4 py-3 text-center text-sm font-bold text-white bg-green-500 hover:bg-green-700 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          disabled={loading}
-        >
-          {loading ? "Submitting..." : "Submit"}
-        </button>
+        {/* Submission Buttons and Response */}
+        <div className="text-center mt-5">
+          <button
+            type="submit"
+            className={`text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 ${
+              loading ? "cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            {loading ? "Submitting..." : "Submit"}
+          </button>
+          {responseMessage && (
+            <p className={`text-sm mt-2 ${responseMessage.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>
+              {responseMessage}
+            </p>
+          )}
+          {isUploaded && <Done />}
+        </div>
       </form>
-
-      {/* Response Message */}
-      {responseMessage && (
-        <div
-          className={`mt-4 text-center text-sm font-semibold py-2 m-5 px-4 rounded-md ${
-            responseMessage.startsWith("Error")
-              ? "text-red-600 bg-red-100"
-              : "text-green-600 bg-green-100"
-          }`}
-        >
-          {responseMessage}
-        </div>
-      )}
     </div>
   );
 };
 
-export default page;
+export default Page;

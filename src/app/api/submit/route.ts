@@ -24,8 +24,9 @@ export async function POST(req: Request) {
       reimbursement,
       reimbursementDate,
       comment,
-      link,
+      mime_type,
       original_name,
+      new_filename,
     } = body;
 
     console.log("Received form data:", body);
@@ -47,10 +48,11 @@ export async function POST(req: Request) {
         Reimverse_from,
         Reimburse_date,
         comment,
-        link,
-        original_name
+        mime_type,
+        original_name,
+        new_filename
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     console.log("Executing query:", query);
@@ -68,8 +70,9 @@ export async function POST(req: Request) {
       reimbursement,
       reimbursementDate,
       comment,
-      link,
+      mime_type,
       original_name,
+      new_filename,
     ]);
 
     const [result] = await db.execute(query, [
@@ -86,8 +89,9 @@ export async function POST(req: Request) {
       reimbursement,
       reimbursementDate,
       comment,
-      link,
+      mime_type,
       original_name,
+      new_filename,
     ]);
 
     return new Response(

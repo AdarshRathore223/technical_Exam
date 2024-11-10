@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, ChangeEvent, useEffect } from "react";
 import { useFetchData } from "@/app/hooks/useFetchData";
 
@@ -16,7 +15,8 @@ interface TableRow {
   reimbFrom: string;
   comments: string;
   reimbDate: string;
-  link: string;
+  original_name: string
+  new_filename: string;
 }
 
 const columns = [
@@ -51,9 +51,9 @@ const columns = [
 
 const DataTable: React.FC = () => {
   const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "null";
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "N/A";
+    if (isNaN(date.getTime())) return "null";
 
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -62,15 +62,11 @@ const DataTable: React.FC = () => {
     return `${day}-${month}-${year}`;
   };
 
-  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "", direction: "asc" });
 
-  const {
-    data: tableData,
-    error,
-    isLoading,
-  } = useFetchData<TableRow[]>("/api/user");
+  const {data: tableData, error, isLoading} = useFetchData<TableRow[]>("/api/user");
   console.log(tableData);
   useEffect(() => {
     if (tableData) console.log("Fetched Data: ", tableData);
@@ -83,6 +79,8 @@ const DataTable: React.FC = () => {
     setFilters({ ...filters, [column]: e.target.value });
   };
 
+  
+
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -91,12 +89,21 @@ const DataTable: React.FC = () => {
     setSortConfig({ key, direction });
   };
 
-  // Ensure tableData is an array before applying filter and sorting
+  const handleDownload = (filename: string, original_name: string) => {
+    const filePath = `/uploads/${filename}`;
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = original_name; 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const filteredData = Array.isArray(tableData)
     ? tableData
         .filter((row) => {
           const matchesSearchTerm = Object.values(row).some((value) =>
-            value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+            value?.toString().toLowerCase()
           );
 
           const matchesFilters = columns.every(({ key }) => {
@@ -140,7 +147,6 @@ const DataTable: React.FC = () => {
         })
         
     : [];
-
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -202,38 +208,36 @@ const DataTable: React.FC = () => {
                   No Data Available
                 </td>
               </tr>
-            ) : (
-              filteredData.map((row, index) => (
-                <tr
-                  key={index}
-                  className={`${index % 2 === 0 ? "bg-blue-50" : "bg-white"}`}
-                >
-                  {columns.map(({ key }) => (
-                    <td key={key} className="text-center">
-                      {key.includes("date")
-                        ? formatDate(row[key as keyof TableRow] as string)
-                        : row[key as keyof TableRow]?.toString() || null}
-                    </td>
-                  ))}
-                 {row.link ?  <td className="text-center">
-                    <a
-                      href={row.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600"
-                    >
-                      View Scan
-                    </a>
-                  </td> :  <td className="text-center">
+            ) : filteredData.map((row, index) => (
+              <tr
+                key={index}
+                className={`${index % 2 === 0 ? "bg-blue-50" : "bg-white"}`}
+              >
+                {columns.map(({ key }) => (
+                  <td key={key} className="text-center">
+                    {key.includes("date")
+                      ? formatDate(row[key as keyof TableRow] as string)
+                      : row[key as keyof TableRow] !== undefined && row[key as keyof TableRow] !== null || "N/A"
+                      ? row[key as keyof TableRow]?.toString() || "N/A"
+                      : null}
+                  </td>
+                ))}
+                {row.new_filename ? (
+                  <td className="text-center py-2">
                     <div
                       className="text-blue-600"
+                      onClick={() => handleDownload(row.new_filename, row.original_name)}
                     >
-                      Not Available
+                      Download
                     </div>
-                  </td>}
-                </tr>
-              ))
-            )}
+                  </td>
+                ) : (
+                  <td className="text-center">
+                    <div className="text-blue-600">Not Available</div>
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

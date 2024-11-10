@@ -1,57 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
+import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import fs from "node:fs/promises";
 
-// Cloudinary Configuration
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-interface CloudinaryUploadResult {
-  public_id: string;
-  [key: string]: any;
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const formData = await req.formData();
 
-    if (!file) {
-      console.error("File not found in request.");
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
-    }
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "next-cloudinary-uploads" },
-        (error, result) => {
-          if (error) {
-            console.error("Error in Cloudinary upload:", error);
-            reject(error);
-          } else {
-            resolve(result as CloudinaryUploadResult);
-          }
-          console.log(result)
-        }
-      );
-      uploadStream.end(buffer);
-    });
+    const file = formData.get("file") as File;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    await fs.writeFile(`./public/uploads/${file.name}`, buffer);
 
-    return NextResponse.json(
-      {
-        publicId: result.public_id,
-        url: result.secure_url
-      },
-      {
-        status: 201
-      }
-    );
+    revalidatePath("/");
 
-  } catch (error) {
-    console.error("Upload image failed:", error);
-    return NextResponse.json({ error: "Upload image failed" }, { status: 500 });
+    return NextResponse.json({ status: "success" });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ status: "fail", error: e });
   }
 }

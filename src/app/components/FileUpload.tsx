@@ -1,86 +1,69 @@
 "use client";
-
-import React, { useState } from "react";
+import { useRef, useState } from "react";
 import Done from "./Done";
 
-type DocumentFormat =
-  | "PDF"
-  | "DOCX"
-  | "TXT"
-  | "Other"
-  | "PNG"
-  | "JPEG"
-  | "JPG"
-  | "GIF"
-  | "BMP"
-  | "SVG"
-  | "WEBP"
-  | "TIFF"
-  | "ICO"
-  | "HEIC";
-
-type HandleChangeProps = {
-  handleChange: (data: { url: string; original_name: string }) => void;
+type handleChangeprops = {
+  handleChange: (
+    mime: string,
+    original_name: string,
+    new_filename: string
+  ) => void;
 };
 
-export default function DocumentUploader({ handleChange }: HandleChangeProps) {
-  const [uploadedDocument, setUploadedDocument] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+export default function FileUpload({ handleChange }: handleChangeprops) {
+  const [isloading, setIsloading] = useState(false);
+  const [isUploaded, setIsUploaded] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  async function uploadFile(evt: React.ChangeEvent<HTMLInputElement>) {
+    const file = evt.target.files?.[0];
+
     if (!file) return;
 
-    setIsUploading(true);
+    const mimeType = file.type;
+
+    const originalName = file.name;
+    const newFilename = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    handleChange(mimeType, originalName, newFilename);
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file, newFilename);
 
     try {
+      setIsloading(true);
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-
-      if (!response.ok) throw new Error("Failed to upload document");
-
-      const data = await response.json();
-      if (!data.publicId)
-        throw new Error("Uploaded document error: publicId not found");
-
-      setUploadedDocument(data.publicId);
-
-      // Pass both URL and original file name as an object to `handleChange`
-      handleChange({ url: data.url, original_name: file.name });
+      const result = await response.json();
+      console.log(result);
+      setIsUploaded(true);
     } catch (error) {
-      console.error(error);
-      alert("Failed to upload document");
+      console.error("Upload failed:", error);
     } finally {
-      setIsUploading(false);
+      setIsloading(false);
     }
-  };
+  }
 
   return (
-    <div className="container mx-auto max-w-4xl">
-      <div className="card">
-        <div className="card-body">
-          <div className="form-control flex w-2/3">
-            <input
-              type="file"
-              accept=".pdf,.docx,.txt,.png,.jpeg,.jpg,.gif,.bmp,.svg,.webp,.tiff,.ico,.heic"
-              onChange={handleFileUpload}
-              className="file-input file-input-bordered file-input-primary w-full"
-            />
-            {isUploading && (
-              <div className="flex justify-center items-center">
-                <div className="w-5 h-5 border-y-2 border-solid rounded-full border-b-green-600 animate-spin" />
-              </div>
-            )}
-            {uploadedDocument && <Done />}
+    <div className="flex flex-col gap-4">
+      <label>
+        <input type="file" name="file" ref={fileInput} onChange={uploadFile} />
+        {isloading && (
+          <div className="flex justify-center items-center">
+            <div className="w-5 h-5 border-y-2 border-solid rounded-full border-b-green-600 animate-spin" />
           </div>
-        </div>
-      </div>
+        )}
+
+        {isloading && true && (
+          <div className="flex justify-center items-center">
+            <div className="w-5 h-5 border-y-2 border-solid rounded-full border-b-green-600 animate-spin" />
+          </div>
+        )}
+
+        {isUploaded && (<Done/>)}
+      </label>
     </div>
   );
 }
