@@ -38,7 +38,8 @@ const fieldNames = {
   amount: "Amount",
 };
 
-const generateUniqueId = (): string => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+const generateUniqueId = (): string =>
+  `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,8 @@ const Page: React.FC = () => {
   const handleFileChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const file = evt.target.files?.[0];
     if (file) setUploadedFile(file);
+    uploadFile();
+    console.log("working...")
   };
 
   const uploadFile = async () => {
@@ -97,7 +100,7 @@ const Page: React.FC = () => {
     const mimeType = uploadedFile.type;
     const originalName = uploadedFile.name;
     const newFilename = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
+    console.log(originalName)
     setFormData({
       ...formData,
       mime_type: mimeType,
@@ -159,7 +162,9 @@ const Page: React.FC = () => {
 
   return (
     <div className="w-full bg-white max-w-[50rem] pb-5 rounded-lg">
-      <h1 className="text-xl text-white bg-green-400 font-bold p-2 rounded-t-md mb-5">Form</h1>
+      <h1 className="text-xl text-white bg-green-400 font-bold p-2 rounded-t-md mb-5">
+        Form
+      </h1>
 
       <form onSubmit={handleSubmit} className="px-6">
         {/* Form Fields */}
@@ -269,7 +274,9 @@ const Page: React.FC = () => {
               label="Reimbursement Date"
               name="reimbursementDate"
               type="date"
-              onChange={(e) => handleInputChange("reimbursementDate", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("reimbursementDate", e.target.value)
+              }
             />
             <Input
               label="Comments"
@@ -282,10 +289,12 @@ const Page: React.FC = () => {
         )}
 
         {/* File Upload */}
-        <div className="mb-4">
-          <label htmlFor="scan" className="block text-sm font-medium text-gray-700">
+        <div className="mb-4 flex items-center">
+          <label
+            htmlFor="scan"
+            className="block text-sm font-medium text-gray-700"
+          >
             Scan <span className="text-red-600 font-extrabold">*</span>
-          </label>
           <input
             ref={fileInputRef}
             onChange={handleFileChange}
@@ -294,14 +303,20 @@ const Page: React.FC = () => {
             name="scan"
             id="scan"
           />
-          {isUploading && <div>Uploading file...</div>}
+          </label>
+          {isUploading && (
+            <div className="flex justify-center items-center">
+              <div className="w-5 h-5 border-y-2 border-solid rounded-full border-b-green-600 animate-spin" />
+            </div>
+          )}
+          {isUploaded && <Done />}
         </div>
 
         {/* Submission Buttons and Response */}
         <div className="text-center mt-5">
           <button
             type="submit"
-            className={`text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 ${
+            className={`w-full text-white bg-green-400 hover:bg-green-500 font-medium rounded-lg px-4 py-2 ${
               loading ? "cursor-not-allowed" : ""
             }`}
             disabled={loading}
@@ -309,11 +324,16 @@ const Page: React.FC = () => {
             {loading ? "Submitting..." : "Submit"}
           </button>
           {responseMessage && (
-            <p className={`text-sm mt-2 ${responseMessage.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>
+            <p
+              className={`text-sm mt-2 p-2 rounded-md ${
+                responseMessage.startsWith("Error")
+                  ? "text-red-600 bg-red-100"
+                  : "text-green-600 bg-green-100"
+              }`}
+            >
               {responseMessage}
             </p>
           )}
-          {isUploaded && <Done />}
         </div>
       </form>
     </div>

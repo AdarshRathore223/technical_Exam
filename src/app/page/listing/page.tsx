@@ -51,9 +51,9 @@ const columns = [
 
 const DataTable: React.FC = () => {
   const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return "null";
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "null";
+    if (isNaN(date.getTime())) return "N/A";
 
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -165,7 +165,7 @@ const DataTable: React.FC = () => {
                   {sortConfig.key === key && (sortConfig.direction === "asc" ? " 🔼" : " 🔽")}
                 </th>
               ))}
-              <th className="text-[0.5rem]">Scan</th>
+              <th className="text-[0.7rem]">Scan</th>
             </tr>
             <tr>
               {columns.map(({ key, filterType, options }) => (

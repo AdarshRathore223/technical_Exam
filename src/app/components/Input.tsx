@@ -4,11 +4,13 @@ interface InputProps {
   label: string;
   name: string;
   required?: boolean;
-  type: "text" | "date" | "number" | "textarea"; 
+  type: "text" | "date" | "number" | "textarea";
   className?: string;
   placeholder?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  charLimit?: number; 
+  onChange?: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  charLimit?: number;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -25,7 +27,9 @@ const Input: React.FC<InputProps> = ({
   const [value, setValue] = useState("");
 
   // Handle input changes and enforce character limit
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     let inputValue = e.target.value;
 
     if (type === "number") {
@@ -53,28 +57,25 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className={`input-container ${className}`}>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700">
-        {label} {required && <span className="text-red-600 font-extrabold">*</span>}
+        {label}{" "}
+        {required && <span className="text-red-600 font-extrabold">*</span>}
       </label>
       {type === "textarea" ? (
         <textarea
           {...inputProps}
           className="w-full p-2 border border-gray-300 rounded-md"
-          maxLength={charLimit} 
+          maxLength={charLimit}
         />
       ) : (
         <input
           {...inputProps}
           type={type}
           {...(type === "date" && { max: today })}
-          maxLength={type === "text" && charLimit ? charLimit : undefined} 
+          maxLength={type === "text" && charLimit ? charLimit : undefined}
         />
       )}
-      {charLimit && (
-        <p className="text-xs text-gray-500 mt-1">
-          {type === "number"
-            ? `${value.replace(/\./g, "").length}/${charLimit} characters`
-            : `${value.length}/${charLimit} characters`}
-        </p>
+      {charLimit && value.length >= charLimit && (
+        <p className="text-xs text-red-500 mt-1">Character limit exceeded</p>
       )}
     </div>
   );
